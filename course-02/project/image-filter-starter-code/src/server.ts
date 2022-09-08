@@ -1,6 +1,8 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import {filterImageFromURL, deleteLocalFiles} from './util/util';
+import { Request, Response } from 'express';
+import { nextTick } from 'process';
 
 (async () => {
 
@@ -30,6 +32,47 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   /**************************************************************************** */
 
   //! END @TODO1
+  /*app.get( "/filteredimage", async ( req: Request, res: Response ) => {
+    //const { image_url }: { image_url: string } = req.query;
+    const { image_url} = JSON.parse(JSON.stringify(req.query));
+    // Validate the image_url query parameter
+    if(!image_url){
+      res.status(404).send("please provide image_url");
+    }
+     let file: string = "";
+     file = await filterImageFromURL(image_url);
+     res.status(200).sendFile(file, () => {
+       deleteLocalFiles([file]);
+     });*/
+     app.get( "/filteredimage", async ( req: Request, res: Response ) => {
+      const { image_url }: { image_url: string } = req.query;
+  
+      // Validate the image_url query parameter
+      if (!image_url) {
+        return res.status(400).send({ message: "The query parameter `image_url` is required"});
+      } 
+  
+      // Filter the image
+      filterImageFromURL(image_url)
+        .then(filteredImagePath => {
+          // Send the resulting file in the response
+          res.status(200).sendFile(filteredImagePath, err => {
+            // Delete the file on the server after sending the file
+            if (err) {
+              return res.status(400).send( { message: err })
+            }
+            else {
+              deleteLocalFiles([filteredImagePath]);
+            }
+          });
+        })
+        .catch(error => {
+          // Return error message for caught errors
+          return res.status(422).send( { message: error } );
+        }); 
+      
+    });
+
   
   // Root Endpoint
   // Displays a simple message to the user
